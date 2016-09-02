@@ -1,3 +1,3 @@
 Slack Bot
 ========
-練習建立一個Slack機器人
+使用python建立一支Slack機器人。
