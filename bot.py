@@ -17,20 +17,19 @@ def get_username_by_id(id):
   return "No user match"
 
 def on_message(ws, message):
-  # print(message)
   r_msg=json.loads(message)
-  current_time=time.asctime(time.localtime(time.time()))
 
-  if "type" in r_msg:
-    r_type=r_msg["type"]
-  else:
-    print(message)
+  if "type" not in r_msg:
     return
 
-  if r_type == "presence_change":
-    username=get_username_by_id(r_msg["user"])
-    print("%s %s %s"%(current_time, username, r_msg["presence"]))
-  elif r_type == "message":
+  current_time=time.asctime(time.localtime(time.time()))
+  r_type=r_msg["type"]
+
+  # if r_type == "presence_change":
+  #   username=get_username_by_id(r_msg["user"])
+  #   print("%s %s %s"%(current_time, username, r_msg["presence"]))
+  # elif r_type == "message":
+  if r_type == "message":
     username=get_username_by_id(r_msg["user"])
     print("%s: %s"%(username, r_msg["text"]))
 
@@ -39,8 +38,11 @@ def on_message(ws, message):
     input_msg=r_msg["text"].lower();
 
     if input_msg == "hello" or input_msg == "hi":
-      reply["text"] = username + ", 您好"
+      reply["text"] = username + ", 您好, 吃飽未?"
       ws.send(json.dumps(reply))
+    elif input_msg == "bot close":
+      if username == "ethan":
+        ws.close()
     else:
       reply["text"] = "我是個測試用的機器人, 請勿拍打餵食"
       ws.send(json.dumps(reply))
@@ -53,14 +55,6 @@ def on_close(ws):
 
 def on_open(ws):
   print("WS on_open!!")
-  def run(*args):
-    for i in range(3):
-      time.sleep(1)
-      ws.send("Hello %d" % i)
-      time.sleep(1)
-      ws.close()
-      print("thread terminating...")
-  # thread.start_new_thread(run, ())
 
 def connect_to(ws, ws_url):
   ws.close()
