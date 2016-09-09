@@ -4,17 +4,115 @@ import requests
 import json
 import websocket
 import time
+import datetime
 
 # init
 url="https://slack.com/api/rtm.start"
+users_profile_get="https://slack.com/api/users.profile.get"
+
 payload={"token": "1111-11111111111-111111111111111111111111"}
 user_list=[]
 
+sample_content = (
+    "A,-{year},-{mon},-{day},"
+    "-{customer},-{project},"
+    "-{content},-{w_t},-{o_t},-{update_day}<br>{update_time},"
+    "-4,-{year}-{mon}-{day}|")
+
+def weeklyReportSystem(user, date_list, halfday):
+
+  print("user:%s, take off date:%s"%(user,date_list))
+
+  # time config
+  localtime = time.localtime(time.time())
+  current_date = time.strftime("%Y/%m/%d", localtime)
+  current_time = time.strftime("%H:%M:%S", localtime)
+
+  # login to weeky report
+  s = requests.Session()
+
+  for x in date_list:
+    # get next friday
+    config_date = x + datetime.timedelta(4 - x.weekday())
+    config_content = "Take off in %s/%s/%s by SlackBot"%(x.year,x.month, x.day)
+
+    print(config_content)
+
+    # post
+    params = {}
+    params['sqlUrl'] = '172.16.83.193'
+    params['sendParam[0]'] = 'username:>{0}'.format(user)
+    params['sendParam[1]'] = 'currentYear:>{0}'.format(config_date.year)
+    params['sendParam[2]'] = 'currentMonth:>{0}'.format(config_date.month)
+    params['sendParam[3]'] = 'currentDay:>{0}'.format(config_date.day)
+    params['sendParam[4]'] = 'tasks:>' + sample_content.format(year=config_date.year,
+                                                               mon=config_date.month,
+                                                               day=config_date.day,
+                                                               customer='Other',
+                                                               project='Take off',
+                                                               content=config_content,
+                                                               w_t=20,
+                                                               o_t=0,
+                                                               update_day=current_date,
+                                                               update_time=current_time)
+    r = s.post('http://172.16.83.193/weekly/sql/db_insert_task.php', data=params)
+    print("status code: %d"%(r.status_code))
+
+# Convert date sting to date object
+def date_string_to_datetime(input_string):
+  input_string = input_string.split("/")
+  current_year = datetime.date.today().year
+  tmp_datetime = datetime.date(current_year, int(input_string[0]), int(input_string[1]))
+
+  # check if is futrue date
+  if tmp_datetime < datetime.date.today():
+    tmp_datetime = datetime.date(current_year+1, int(input_string[0]), int(input_string[1]))
+
+  return tmp_datetime
+
+# Parse the date string to list
+# ex: input="1/1-2,1/5" output=['1/5','1/1','1/2']
+def parsing_date_to_list(input_string):
+  date_list = input_string.split(",")
+  datetime_list = []
+
+  for x in date_list:
+    if x.find("-") != -1:
+      tmp2 = x.split("/")
+      tmp3 = tmp2[1].split("-")
+      for y in tmp3:
+        tmp4 = "%s/%s"%(tmp2[0], y)
+        datetime_list.append(date_string_to_datetime(tmp4))
+    else:
+      datetime_list.append(date_string_to_datetime(x))
+
+  return datetime_list
+
+def take_off_procedure(user_id, dates):
+  # date list
+  date_list = parsing_date_to_list(dates)
+
+  # user
+  username = get_username_by_id(user_id).lower().split(" ")
+  username = username[0] + username[1]
+  print(username)
+
+  # weekly report
+  weeklyReportSystem(username, date_list, False)
+
+
 def get_username_by_id(id):
   for index, item in enumerate(rv['users']):
+    if item['deleted'] == True:
+      continue
+
     if item['id'] == id:
-      return item['name']
+      return item['real_name']
   return "No user match"
+
+def on_reply(ws, reply, message):
+  reply["text"] = message
+  ws.send(json.dumps(reply))
 
 def on_message(ws, message):
   r_msg=json.loads(message)
@@ -31,21 +129,41 @@ def on_message(ws, message):
   # elif r_type == "message":
   if r_type == "message":
     username=get_username_by_id(r_msg["user"])
-    print("%s: %s"%(username, r_msg["text"]))
+    # print("%s: %s"%(username, r_msg["text"]))
+    print(r_msg)
 
     # reply format
     reply={"id":r_msg["user"], "type":"message", "text":"吃飽未?", "channel":r_msg["channel"]}
     input_msg=r_msg["text"].lower();
 
+    if username == "" or username == "No user match":
+      # reply["text"] = "您好, 請先至User Profile頁面設定您的First/Last name, 讓我知道你是誰"
+      # ws.send(json.dumps(reply))
+      return
+
+    if username == "thisis abook":
+      print("Bot message")
+      return
+
     if input_msg == "hello" or input_msg == "hi":
       reply["text"] = username + ", 您好, 吃飽未?"
       ws.send(json.dumps(reply))
     elif input_msg == "bot close":
-      if username == "ethan":
+      if username == "Ethan Tsai":
+        on_reply(ws, reply, "Bye~!")
         ws.close()
+    elif input_msg.find("請假") != -1:
+      va=input_msg.split()
+      print(va)
+      if len(va) < 2:
+        on_reply(ws, reply, "想請假嗎? 請依照以下格式\n \"請假 <日期> \", ex: 請假 9/9,9/11")
+      else:
+        take_off_procedure(r_msg["user"], va[1])
+        reply_msg="你將於%s開始休假, 祝休假愉快!"%(va[1])
+        on_reply(ws, reply, reply_msg)
     else:
       reply["text"] = "我是個測試用的機器人, 請勿拍打餵食"
-      ws.send(json.dumps(reply))
+      on_reply(ws, reply, reply_msg)
 
 def on_error(ws, error):
   print(error)
@@ -61,6 +179,7 @@ def connect_to(ws, ws_url):
 
 
 if __name__ == "__main__":
+
   # Read token from file
   f=open("setup.json", "r")
   payload["token"] = json.loads(f.read())["token"]
@@ -71,6 +190,15 @@ if __name__ == "__main__":
   print("Connect to slack RTM service: %s"%(rv['ok']))
 
   user_list = rv['users']
+
+  for x in user_list:
+    if x['deleted'] == True:
+      continue
+
+    if 'real_name' in x:
+      print("id:%s real_name:%s "%(x['id'], x['real_name']))
+    else:
+      print("id:%s name:%s "%(x['id'], x['name']))
 
   wss_url=rv["url"]
   ws = websocket.WebSocketApp(wss_url,
