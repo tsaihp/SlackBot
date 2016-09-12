@@ -56,13 +56,17 @@ def weeklyReportSystem(user, date_list, halfday):
                                                                update_day=current_date,
                                                                update_time=current_time)
     r = s.post('http://172.16.83.193/weekly/sql/db_insert_task.php', data=params)
-    print("status code: %d"%(r.status_code))
 
 # Convert date sting to date object
 def date_string_to_datetime(input_string):
   input_string = input_string.split("/")
   current_year = datetime.date.today().year
-  tmp_datetime = datetime.date(current_year, int(input_string[0]), int(input_string[1]))
+
+  try:
+    tmp_datetime = datetime.date(current_year, int(input_string[0]), int(input_string[1]))
+  except ValueError:
+    print("Value Error: %d/%d/%d"%(current_year, int(input_string[0]), int(input_string[1])))
+    return False
 
   # check if is futrue date
   if tmp_datetime < datetime.date.today():
@@ -80,11 +84,14 @@ def parsing_date_to_list(input_string):
     if x.find("-") != -1:
       tmp2 = x.split("/")
       tmp3 = tmp2[1].split("-")
-      for y in tmp3:
-        tmp4 = "%s/%s"%(tmp2[0], y)
-        datetime_list.append(date_string_to_datetime(tmp4))
+      for y in range(int(tmp3[0]), int(tmp3[1])+1):
+        tmp4 = "%s/%d"%(tmp2[0], y)
+
+        if date_string_to_datetime(tmp4) != False:
+          datetime_list.append(date_string_to_datetime(tmp4))
     else:
-      datetime_list.append(date_string_to_datetime(x))
+      if date_string_to_datetime(x) != False:
+        datetime_list.append(date_string_to_datetime(x))
 
   return datetime_list
 
