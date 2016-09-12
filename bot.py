@@ -5,6 +5,7 @@ import json
 import websocket
 import time
 import datetime
+import sys
 
 # init
 url="https://slack.com/api/rtm.start"
@@ -19,7 +20,7 @@ sample_content = (
     "-{content},-{w_t},-{o_t},-{update_day}<br>{update_time},"
     "-4,-{year}-{mon}-{day}|")
 
-def weeklyReportSystem(user, date_list, halfday):
+def report_to_weeklyreport_system(user, date_list, halfday):
 
   print("user:%s, take off date:%s"%(user,date_list))
 
@@ -105,7 +106,7 @@ def take_off_procedure(user_id, dates):
   print(username)
 
   # weekly report
-  weeklyReportSystem(username, date_list, False)
+  report_to_weeklyreport_system(username, date_list, False)
 
 
 def get_username_by_id(id):
@@ -136,21 +137,25 @@ def on_message(ws, message):
   # elif r_type == "message":
   if r_type == "message":
     username=get_username_by_id(r_msg["user"])
-    # print("%s: %s"%(username, r_msg["text"]))
-    print(r_msg)
+    # print(r_msg)
 
     # reply format
     reply={"id":r_msg["user"], "type":"message", "text":"吃飽未?", "channel":r_msg["channel"]}
     input_msg=r_msg["text"].lower();
 
     if username == "" or username == "No user match":
-      # reply["text"] = "您好, 請先至User Profile頁面設定您的First/Last name, 讓我知道你是誰"
-      # ws.send(json.dumps(reply))
+      # no user name
       return
 
-    if username == "thisis abook":
-      print("Bot message")
+    if r_msg["user"] == "U26SFGPP1":
+      print("Bot: %s"%(r_msg["text"]))
       return
+
+    if r_msg["channel"][0] == "C" and r_msg["text"].find("<@U26SFGPP1>") == -1:
+      # Not for me
+      return
+
+    print("%s: %s"%(username, r_msg["text"]))
 
     if input_msg == "hello" or input_msg == "hi":
       reply["text"] = username + ", 您好, 吃飽未?"
@@ -161,7 +166,7 @@ def on_message(ws, message):
         ws.close()
     elif input_msg.find("請假") != -1:
       va=input_msg.split()
-      print(va)
+      # print(va)
       if len(va) < 2:
         on_reply(ws, reply, "想請假嗎? 請依照以下格式\n \"請假 <日期> \", ex: 請假 9/9,9/11")
       else:
@@ -169,20 +174,46 @@ def on_message(ws, message):
         reply_msg="你將於%s開始休假, 祝休假愉快!"%(va[1])
         on_reply(ws, reply, reply_msg)
     else:
-      reply["text"] = "我是個測試用的機器人, 請勿拍打餵食"
+      reply_msg = "我是個測試用的機器人, 請勿拍打餵食"
       on_reply(ws, reply, reply_msg)
+  elif r_type == "error":
+      print("Error (%d)! %s"%(r_msg['error']['code'], r_msg['error']['msg']))
+      return
 
 def on_error(ws, error):
   print(error)
 
 def on_close(ws):
+  # wait 5 seconds
+  time.sleep(5)
   print("### closed ###")
 
 def on_open(ws):
   print("WS on_open!!")
+  post_message_to_channel('test_channel', '拎北起床惹!')
 
 def connect_to(ws, ws_url):
   ws.close()
+
+
+def post_message(post_to, message):
+  msg_payload = {
+    'token': payload["token"],
+    'channel': post_to,
+    'as_user': True,
+    'text': message
+  }
+
+  r = requests.get('https://slack.com/api/chat.postMessage', params=msg_payload)
+  print(r.json())
+
+def post_message_to_user(user, message):
+  user = '@' + user
+  post_message(user, message)
+
+def post_message_to_channel(channel, message):
+  channel = '#' + channel
+  post_message(channel, message)
 
 
 if __name__ == "__main__":
@@ -190,24 +221,24 @@ if __name__ == "__main__":
   # Read token from file
   f=open("setup.json", "r")
   payload["token"] = json.loads(f.read())["token"]
+  f.close()
 
   # connect to rtm
   r=requests.get(url,params=payload)
-  rv=json.loads(r.text)
-  print("Connect to slack RTM service: %s"%(rv['ok']))
+  rv = r.json()
+
+  if rv['ok'] == True:
+    print("Connect to slack RTM service: Success")
+  else:
+    print("Connect to slack RTM service: Fail!")
+    print("Error: %s"%(rv['error']))
+    sys.exit()
 
   user_list = rv['users']
-
-  for x in user_list:
-    if x['deleted'] == True:
-      continue
-
-    if 'real_name' in x:
-      print("id:%s real_name:%s "%(x['id'], x['real_name']))
-    else:
-      print("id:%s name:%s "%(x['id'], x['name']))
-
   wss_url=rv["url"]
+
+  print("Bot %s is active now"%(rv["self"]['name']))
+
   ws = websocket.WebSocketApp(wss_url,
                               on_message = on_message,
                               on_error = on_error,
