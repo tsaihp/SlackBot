@@ -58,7 +58,8 @@ def report_to_weeklyreport_system(user, date_list, halfday):
                                                                    w_t=20,
                                                                    o_t=0,
                                                                    update_day=current_date,
-                                                                   update_time=current_time)
+                                                                   update_time=current_time
+                                                                   )
         r = s.post('http://172.16.83.193/weekly/sql/db_insert_task.php', data=params)
 
 # Report to google spreadsheet
@@ -115,7 +116,7 @@ def parsing_date_to_list(input_string):
     for x in date_list:
         if x.find("-") != -1:
             tmp2 = x.split("/")
-             tmp3 = tmp2[1].split("-")
+            tmp3 = tmp2[1].split("-")
             for y in range(int(tmp3[0]), int(tmp3[1])+1):
                 tmp4 = "%s/%d"%(tmp2[0], y)
 
@@ -181,7 +182,12 @@ def on_message(ws, message):
         # print(r_msg)
 
         # reply format
-        reply={"id":r_msg["user"], "type":"message", "text":"吃飽未?", "channel":r_msg["channel"]}
+        reply={
+            "id":r_msg["user"],
+            "type":"message",
+            "text":"吃飽未?",
+            "channel":r_msg["channel"]
+        }
         input_msg=r_msg["text"].lower();
 
         if username == "" or username == "No user match":
@@ -202,7 +208,7 @@ def on_message(ws, message):
             reply["text"] = username + ", 您好, 吃飽未?"
             ws.send(json.dumps(reply))
         elif input_msg == "bot close":
-            if username == "Ethan Tsai":
+            if username == "ethan":
                 on_reply(ws, reply, "Bye~!")
                 ws.close()
         elif input_msg.find("請假") != -1:
