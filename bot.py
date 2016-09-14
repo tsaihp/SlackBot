@@ -7,6 +7,9 @@ import time
 import datetime
 import sys
 
+import gspread
+from oauth2client.service_account import ServiceAccountCredentials
+
 # init
 url="https://slack.com/api/rtm.start"
 users_profile_get="https://slack.com/api/users.profile.get"
@@ -20,9 +23,10 @@ sample_content = (
     "-{content},-{w_t},-{o_t},-{update_day}<br>{update_time},"
     "-4,-{year}-{mon}-{day}|")
 
+# Report to weekly report system
 def report_to_weeklyreport_system(user, date_list, halfday):
 
-  print("user:%s, take off date:%s"%(user,date_list))
+  print("[Weekly System]user:%s, take off:%s"%(user,date_list))
 
   # time config
   localtime = time.localtime(time.time())
@@ -36,8 +40,6 @@ def report_to_weeklyreport_system(user, date_list, halfday):
     # get next friday
     config_date = x + datetime.timedelta(4 - x.weekday())
     config_content = "Take off in %s/%s/%s by SlackBot"%(x.year,x.month, x.day)
-
-    print(config_content)
 
     # post
     params = {}
@@ -57,6 +59,34 @@ def report_to_weeklyreport_system(user, date_list, halfday):
                                                                update_day=current_date,
                                                                update_time=current_time)
     r = s.post('http://172.16.83.193/weekly/sql/db_insert_task.php', data=params)
+
+# Report to google spreadsheet
+def report_to_googlespreadsheet(user, date_list, halfday):
+
+  print("[GSpread System]user:%s, take off:%s"%(user,date_list))
+
+  gc = gspread.authorize(credentials)
+  sh = gc.open("dnisw_holiday_2016") 
+
+  for x in date_list:
+    # select sheet
+    select_sheet = "{0}月".format(x.month)
+    sht = sh.worksheet(select_sheet)
+
+    # col: day
+    day_list = sht.row_values(1)
+    try:
+      col_num = day_list.index(str(x.day))+1
+    except ValueError:
+      continue
+
+    # row: user
+    cell = sht.find(user)
+    row_num = cell.row
+
+    # update
+    sht.update_cell(row_num, col_num, '1')
+
 
 # Convert date sting to date object
 def date_string_to_datetime(input_string):
@@ -96,26 +126,36 @@ def parsing_date_to_list(input_string):
 
   return datetime_list
 
+# Define actions when taking off
 def take_off_procedure(user_id, dates):
   # date list
   date_list = parsing_date_to_list(dates)
 
-  # user
-  username = get_username_by_id(user_id).lower().split(" ")
-  username = username[0] + username[1]
-  print(username)
-
   # weekly report
+  username = get_weeklyname_by_id(user_id)
   report_to_weeklyreport_system(username, date_list, False)
+
+  # google spreadsheet
+  username = get_googlename_by_id(user_id)
+  report_to_googlespreadsheet(username, date_list, False)
 
 
 def get_username_by_id(id):
-  for index, item in enumerate(rv['users']):
-    if item['deleted'] == True:
-      continue
+  for item in user_list:
+    if item['slack_id'] == id:
+      return item['slack_name']
+  return "No user match"
 
-    if item['id'] == id:
-      return item['real_name']
+def get_weeklyname_by_id(id):
+  for item in user_list:
+    if item['slack_id'] == id:
+      return item['weekly_name']
+  return "No user match"
+
+def get_googlename_by_id(id):
+  for item in user_list:
+    if item['slack_id'] == id:
+      return item['google_name']
   return "No user match"
 
 def on_reply(ws, reply, message):
@@ -186,6 +226,7 @@ def on_error(ws, error):
 def on_close(ws):
   # wait 5 seconds
   time.sleep(5)
+  post_message_to_channel('test_channel', '拎北來睏惹!')
   print("### closed ###")
 
 def on_open(ws):
@@ -223,6 +264,15 @@ if __name__ == "__main__":
   payload["token"] = json.loads(f.read())["token"]
   f.close()
 
+  # Read user's infomation
+  f=open("users.json", "r")
+  user_list = json.loads(f.read())["users"]
+  f.close()
+
+  # gspread.authorize
+  scope = ['https://spreadsheets.google.com/feeds']
+  credentials = ServiceAccountCredentials.from_json_keyfile_name('auth.json', scope)
+
   # connect to rtm
   r=requests.get(url,params=payload)
   rv = r.json()
@@ -234,7 +284,13 @@ if __name__ == "__main__":
     print("Error: %s"%(rv['error']))
     sys.exit()
 
-  user_list = rv['users']
+  # user_list = rv['users']
+
+  # for item in user_list:
+  #   if item['deleted'] == True:
+  #     continue
+  #   print("{0}".format(item['name']))
+
   wss_url=rv["url"]
 
   print("Bot %s is active now"%(rv["self"]['name']))
