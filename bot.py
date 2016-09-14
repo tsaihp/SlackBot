@@ -105,6 +105,10 @@ def date_string_to_datetime(input_string):
     if tmp_datetime < datetime.date.today():
         tmp_datetime = datetime.date(current_year+1, int(input_string[0]), int(input_string[1]))
 
+    # pass weekend
+    if tmp_datetime.weekday() > 4:
+        continue
+
     return tmp_datetime
 
 # Parse the date string to list
@@ -119,12 +123,13 @@ def parsing_date_to_list(input_string):
             tmp3 = tmp2[1].split("-")
             for y in range(int(tmp3[0]), int(tmp3[1])+1):
                 tmp4 = "%s/%d"%(tmp2[0], y)
-
-                if date_string_to_datetime(tmp4) != False:
-                    datetime_list.append(date_string_to_datetime(tmp4))
+                tmp5 = date_string_to_datetime(tmp4)
+                if tmp5 != False:
+                    datetime_list.append(tmp5)
         else:
-            if date_string_to_datetime(x) != False:
-                datetime_list.append(date_string_to_datetime(x))
+            tmp5 = date_string_to_datetime(x)
+            if tmp5 != False:
+                datetime_list.append(tmp5)
 
     return datetime_list
 
