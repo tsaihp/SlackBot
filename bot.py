@@ -167,11 +167,8 @@ def on_reply(ws, reply, message):
 def on_message(ws, message):
     r_msg=json.loads(message)
 
-    if "type" not in r_msg:
-        return
-
     current_time=time.asctime(time.localtime(time.time()))
-    r_type=r_msg["type"]
+    r_type=r_msg.get("type", "NO_TYPE")
 
     # if r_type == "presence_change":
     #   username=get_username_by_id(r_msg["user"])
