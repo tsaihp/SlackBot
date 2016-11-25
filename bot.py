@@ -10,6 +10,8 @@ import sys
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 
+import gcalendar
+
 # init
 url="https://slack.com/api/rtm.start"
 users_profile_get="https://slack.com/api/users.profile.get"
@@ -107,7 +109,7 @@ def date_string_to_datetime(input_string):
 
     # pass weekend
     if tmp_datetime.weekday() > 4:
-        continue
+        return False
 
     return tmp_datetime
 
@@ -143,8 +145,12 @@ def take_off_procedure(user_id, dates):
     report_to_weeklyreport_system(username, date_list, False)
 
     # google spreadsheet
-    username = get_googlename_by_id(user_id)
-    report_to_googlespreadsheet(username, date_list, False)
+    # username = get_googlename_by_id(user_id)
+    # report_to_googlespreadsheet(username, date_list, False)
+
+    # calendar
+    username = get_username_by_id(user_id)
+    gcalendar.addEventstoGCalendar(username, date_list)
 
 
 def get_username_by_id(id):
