@@ -70,10 +70,12 @@ def addEventstoGCalendar(user, date_list):
           'location': '',
           'description': 'Created by SlackBot',
           'start': {
-            'date': str(x),
+            'dateTime': ("%sT09:00:00+08:00"%str(x)),
+            'timeZone': 'Asia/Taipei',
           },
           'end': {
-            'date': str(x),
+            'dateTime': ("%sT17:30:00+08:00"%str(x)),
+            'timeZone': 'Asia/Taipei',
           },
         }
 
