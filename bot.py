@@ -223,13 +223,13 @@ def on_message(ws, message):
             va=input_msg.split()
             # print(va)
             if len(va) < 2:
-                on_reply(ws, reply, "想請假嗎? 請依照以下格式\n \"請假 <日期> \", ex: 請假 9/9,9/11")
+                on_reply(ws, reply, "想請假嗎? 請依照以下格式\n \"請假 <日期> \", ex: 請假 9/13,9/20")
             else:
                 take_off_procedure(r_msg["user"], va[1])
                 reply_msg="你將於%s開始休假, 祝休假愉快!"%(va[1])
                 on_reply(ws, reply, reply_msg)
         else:
-            reply_msg = "我是個測試用的機器人, 請勿拍打餵食"
+            reply_msg = "我是個測試用的機器人, 不要把人家玩壞惹"
             on_reply(ws, reply, reply_msg)
     elif r_type == "error":
         print("Error (%d)! %s"%(r_msg['error']['code'], r_msg['error']['msg']))
