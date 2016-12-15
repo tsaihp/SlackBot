@@ -11,6 +11,7 @@ import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 
 import gcalendar
+import parsing_takeoff
 
 # init
 url="https://slack.com/api/rtm.start"
@@ -92,66 +93,27 @@ def report_to_googlespreadsheet(user, date_list, halfday):
         sht.update_cell(row_num, col_num, '1')
 
 
-# Convert date sting to date object
-def date_string_to_datetime(input_string):
-    input_string = input_string.split("/")
-    current_year = datetime.date.today().year
-
-    try:
-        tmp_datetime = datetime.date(current_year, int(input_string[0]), int(input_string[1]))
-    except ValueError:
-        print("Value Error: %d/%d/%d"%(current_year, int(input_string[0]), int(input_string[1])))
-        return False
-
-    # check if is futrue date
-    if tmp_datetime < datetime.date.today():
-        tmp_datetime = datetime.date(current_year+1, int(input_string[0]), int(input_string[1]))
-
-    # pass weekend
-    if tmp_datetime.weekday() > 4:
-        return False
-
-    return tmp_datetime
-
-# Parse the date string to list
-# ex: input="1/1-2,1/5" output=['1/5','1/1','1/2']
-def parsing_date_to_list(input_string):
-    date_list = input_string.split(",")
-    datetime_list = []
-
-    for x in date_list:
-        if x.find("-") != -1:
-            tmp2 = x.split("/")
-            tmp3 = tmp2[1].split("-")
-            for y in range(int(tmp3[0]), int(tmp3[1])+1):
-                tmp4 = "%s/%d"%(tmp2[0], y)
-                tmp5 = date_string_to_datetime(tmp4)
-                if tmp5 != False:
-                    datetime_list.append(tmp5)
-        else:
-            tmp5 = date_string_to_datetime(x)
-            if tmp5 != False:
-                datetime_list.append(tmp5)
-
-    return datetime_list
-
 # Define actions when taking off
-def take_off_procedure(user_id, dates):
-    # date list
-    date_list = parsing_date_to_list(dates)
+def take_off_procedure(user_id, input_string):
 
-    # weekly report
-    username = get_weeklyname_by_id(user_id)
-    report_to_weeklyreport_system(username, date_list, False)
+    date_list = parsing_takeoff.parsing_date(input_string)
 
-    # google spreadsheet
-    # username = get_googlename_by_id(user_id)
-    # report_to_googlespreadsheet(username, date_list, False)
+    if len(date_list) > 0 and len(date_list) <= 5:
+        # weekly report
+        username = get_weeklyname_by_id(user_id)
+        report_to_weeklyreport_system(username, date_list, False)
 
-    # calendar
-    username = get_username_by_id(user_id)
-    gcalendar.addEventstoGCalendar(username, date_list)
+        # google spreadsheet
+        # username = get_googlename_by_id(user_id)
+        # report_to_googlespreadsheet(username, date_list, False)
 
+        # calendar
+        username = get_username_by_id(user_id)
+        gcalendar.addEventstoGCalendar(username, date_list)
+
+        return date_list[0]
+
+    return None
 
 def get_username_by_id(id):
     for item in user_list:
@@ -219,15 +181,14 @@ def on_message(ws, message):
             if username == "ethan":
                 on_reply(ws, reply, "Bye~!")
                 ws.close()
-        elif input_msg.find("請假") != -1:
-            va=input_msg.split()
-            # print(va)
-            if len(va) < 2:
-                on_reply(ws, reply, "想請假嗎? 請依照以下格式\n \"請假 <日期> \", ex: 請假 9/13,9/20")
+        elif parsing_takeoff.isTakeoffReq(input_msg):
+            firstDate = take_off_procedure(r_msg["user"], input_msg)
+            if firstDate:
+                reply_msg = "你將於%d/%d開始休假, 祝休假愉快!"%(firstDate.month,firstDate.day)
             else:
-                take_off_procedure(r_msg["user"], va[1])
-                reply_msg="你將於%s開始休假, 祝休假愉快!"%(va[1])
-                on_reply(ws, reply, reply_msg)
+                reply_msg = "拍謝啦, 我不了解你的明白, 你是不是時間給錯啦?"
+
+            on_reply(ws, reply, reply_msg)
         else:
             reply_msg = "我是個測試用的機器人, 不要把人家玩壞惹"
             on_reply(ws, reply, reply_msg)
