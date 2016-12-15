@@ -153,7 +153,6 @@ def on_message(ws, message):
                 reply_msg = "你將於%d/%d開始休假, 祝休假愉快!"%(firstDate.month,firstDate.day)
             else:
                 reply_msg = "拍謝啦, 我不了解你的明白, 你是不是時間給錯啦?"
-
             on_reply(ws, reply, reply_msg)
         else:
             reply_msg = "我是個測試用的機器人, 不要把人家玩壞惹"

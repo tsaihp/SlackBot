@@ -9,6 +9,6 @@
 
 * users.json : 使用者清單
 * setup.json : Slack bot的token
-* auth.json : Google API的credential，先到[Google Console](https://console.developers.google.com)申請OAuth2的認證Token，記得要把Spreadsheet的API打開
+* client_secret.json : Google API的credential，先到[Google Console](https://console.developers.google.com)申請OAuth2的認證Token，記得要把Calendar的API打開
 
 

@@ -121,15 +121,11 @@ def parsing_date(input_string):
 
 
 def isTakeoffReq(input_string):
-    if match_pattern(takeoff_pat, input_string) == None:
-        return False
-    else:
-        return True
+    return match_pattern([takeoff_pat], input_string)
 
 def parsing_takeoff_string(input_string):
     if isTakeoffReq(input_string):
         return parsing_date(input_string)
-
     return None
 
 if __name__ == "__main__":
