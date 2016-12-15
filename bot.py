@@ -7,9 +7,6 @@ import time
 import datetime
 import sys
 
-import gspread
-from oauth2client.service_account import ServiceAccountCredentials
-
 import gcalendar
 import parsing_takeoff
 
@@ -65,33 +62,6 @@ def report_to_weeklyreport_system(user, date_list, halfday):
                                                                    )
         r = s.post('http://172.16.83.193/weekly/sql/db_insert_task.php', data=params)
 
-# Report to google spreadsheet
-def report_to_googlespreadsheet(user, date_list, halfday):
-
-    print("[GSpread System]user:%s, take off:%s"%(user,date_list))
-
-    gc = gspread.authorize(credentials)
-    sh = gc.open("dnisw_holiday_2016") 
-
-    for x in date_list:
-        # select sheet
-        select_sheet = "{0}月".format(x.month)
-        sht = sh.worksheet(select_sheet)
-
-        # col: day
-        day_list = sht.row_values(1)
-        try:
-          col_num = day_list.index(str(x.day))+1
-        except ValueError:
-          continue
-
-        # row: user
-        cell = sht.find(user)
-        row_num = cell.row
-
-        # update
-        sht.update_cell(row_num, col_num, '1')
-
 
 # Define actions when taking off
 def take_off_procedure(user_id, input_string):
@@ -102,10 +72,6 @@ def take_off_procedure(user_id, input_string):
         # weekly report
         username = get_weeklyname_by_id(user_id)
         report_to_weeklyreport_system(username, date_list, False)
-
-        # google spreadsheet
-        # username = get_googlename_by_id(user_id)
-        # report_to_googlespreadsheet(username, date_list, False)
 
         # calendar
         username = get_username_by_id(user_id)
@@ -244,10 +210,6 @@ if __name__ == "__main__":
     f=open("users.json", "r")
     user_list = json.loads(f.read())["users"]
     f.close()
-
-    # gspread.authorize
-    scope = ['https://spreadsheets.google.com/feeds']
-    credentials = ServiceAccountCredentials.from_json_keyfile_name('auth.json', scope)
 
     # connect to rtm
     r=requests.get(url,params=payload)

@@ -27,9 +27,10 @@ test_items = [
                 '下週一請假',
                 '下禮拜一請假',
                 '下禮拜一早上請假',
-                '下星期一請假',
-                '11/11請假',
-                '11/11早上請假',
+                '星期五請假',
+                '下星期五請假',
+                '12/30請假',
+                '12/31早上請假',
                 '11/11-11/15請假',
                 '11/31請假'
             ]
@@ -59,6 +60,10 @@ def parsing_weekday(input_weekday):
         if input_weekday.find(prefix) != -1:
             weekday = weekday_map[(input_weekday.split(prefix)[-1])]
             aDate = datetime.date.today()
+
+            if input_weekday[0] == '下':
+                aDate = aDate + datetime.timedelta(days=(7 - aDate.weekday()))
+
             # get next weekday
             while aDate.weekday() != weekday:
                 aDate = aDate + datetime.timedelta(days=1)
