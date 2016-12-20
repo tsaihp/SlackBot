@@ -39,8 +39,11 @@ def report_to_weeklyreport_system(user, date_list, halfday):
 
     for x in date_list:
         # get next friday
-        config_date = x + datetime.timedelta(4 - x.weekday())
-        config_content = "Take off in %s/%s/%s by SlackBot"%(x.year,x.month, x.day)
+        config_date = x['date'] + datetime.timedelta(4 - x['date'].weekday())
+        config_content = "Take off in %s/%s/%s by SlackBot"%(x['date'].year,x['date'].month, x['date'].day)
+        work_time = 20
+        if x['time'] != 'wholeday':
+            work_time = 10
 
         # post
         params = {}
@@ -55,7 +58,7 @@ def report_to_weeklyreport_system(user, date_list, halfday):
                                                                    customer='Other',
                                                                    project='Take off',
                                                                    content=config_content,
-                                                                   w_t=20,
+                                                                   w_t=work_time,
                                                                    o_t=0,
                                                                    update_day=current_date,
                                                                    update_time=current_time
@@ -150,7 +153,7 @@ def on_message(ws, message):
         elif parsing_takeoff.isTakeoffReq(input_msg):
             firstDate = take_off_procedure(r_msg["user"], input_msg)
             if firstDate:
-                reply_msg = "你將於%d/%d開始休假, 祝休假愉快!"%(firstDate.month,firstDate.day)
+                reply_msg = "你將於%d/%d開始休假, 祝休假愉快!"%(firstDate['date'].month,firstDate['date'].day)
             else:
                 reply_msg = "拍謝啦, 我不了解你的明白, 你是不是時間給錯啦?"
             on_reply(ws, reply, reply_msg)

@@ -64,17 +64,29 @@ def addEventstoGCalendar(user, date_list):
     summary = ("%s請假" % (user))
 
     for x in date_list:
+        start_time = ''
+        end_time = ''
+        if x['time'] == 'wholeday':
+            start_time = ("%sT09:00:00+08:00"%str(x['date']))
+            end_time = ("%sT17:30:00+08:00"%str(x['date']))
+        elif x['time'] == 'morning':
+            start_time = ("%sT09:00:00+08:00"%str(x['date']))
+            end_time = ("%sT12:00:00+08:00"%str(x['date']))
+        elif x['time'] == 'afternoon':
+            start_time = ("%sT13:00:00+08:00"%str(x['date']))
+            end_time = ("%sT17:30:00+08:00"%str(x['date']))
+
         # define event
         event = {
           'summary': summary,
           'location': '',
           'description': 'Created by SlackBot',
           'start': {
-            'dateTime': ("%sT09:00:00+08:00"%str(x)),
+            'dateTime': start_time,
             'timeZone': 'Asia/Taipei',
           },
           'end': {
-            'dateTime': ("%sT17:30:00+08:00"%str(x)),
+            'dateTime': end_time,
             'timeZone': 'Asia/Taipei',
           },
         }

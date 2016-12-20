@@ -18,7 +18,6 @@ takeoff_pat = r'請\w*假'
 
 test_items = [
                 '明天請假',
-                '明天請半天假',
                 '明天上午請假',
                 '明天上午請假半天',
                 '明天早上請假',
@@ -32,7 +31,9 @@ test_items = [
                 '12/30請假',
                 '12/31早上請假',
                 '11/11-11/15請假',
-                '11/31請假'
+                '11/31請假',
+                '我今天想請假',
+                '今天誰請假'
             ]
 
 weekday_prefix = ['禮拜','星期','週']
@@ -47,6 +48,9 @@ weekday_map = {
                 '日': 6
             }
 
+def insertDateTime_to_list(alist, in_date, in_time):
+    alist.append({'date':in_date,'time': in_time})
+
 def match_pattern(pattern_list, input_string):
     for pattern in pattern_list:
         # print("pattern:%s input:%s"%(pattern, input_string))
@@ -54,6 +58,15 @@ def match_pattern(pattern_list, input_string):
         if match:
             return match.group()
     return None
+
+def parsing_time(input_time):
+    time_string = match_pattern(time_pat, input_time)
+    if time_string == '早上' or time_string == '上午':
+        return 'morning'
+    elif time_string == '下午':
+        return 'afternoon'
+    else:
+        return 'wholeday'
 
 def parsing_weekday(input_weekday):
     for prefix in weekday_prefix:
@@ -83,6 +96,7 @@ def get_date(input_string):
 
 def parsing_date(input_string):
     date_string = match_pattern(date_pat, input_string)
+    time_string = parsing_time(input_string)
     date_list = []
     if date_string:
         setting_date = datetime.date.today()
@@ -98,13 +112,15 @@ def parsing_date(input_string):
                 if start_date and end_date:
                     while start_date <= end_date:
                         if start_date.weekday() <= 4:
-                            date_list.append(start_date)
+                            # date_list.append({start_date, time_string})
+                            insertDateTime_to_list(date_list, start_date, time_string)
                         start_date = start_date + datetime.timedelta(days=1)
                         pass
             else:
                 setting_date = get_date(date_string)
                 if setting_date and setting_date.weekday() <= 4:
-                    date_list.append(setting_date)
+                    # date_list.append({setting_date, time_string})
+                    insertDateTime_to_list(date_list, setting_date, time_string)
         else:
             # descripted date
             if date_string == '明天':
@@ -115,15 +131,28 @@ def parsing_date(input_string):
                 setting_date = parsing_weekday(date_string)
 
             if setting_date and setting_date.weekday() <= 4:
-                date_list.append(setting_date)
+                # date_list.append({setting_date, time_string})
+                insertDateTime_to_list(date_list, setting_date, time_string)
 
     return date_list
 
 
+def isTakeoffQuery(input_string):
+    if match_pattern(["誰"+ takeoff_pat], input_string):
+        return True
+    return False
+
 def isTakeoffReq(input_string):
-    return match_pattern([takeoff_pat], input_string)
+    for datePat in date_pat:
+        if match_pattern([datePat + "\w*"+ takeoff_pat], input_string):
+            return True
+    return False
+    
 
 def parsing_takeoff_string(input_string):
+    if isTakeoffQuery(input_string):
+        return 'query'
+
     if isTakeoffReq(input_string):
         return parsing_date(input_string)
     return None
