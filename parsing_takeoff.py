@@ -12,12 +12,26 @@ import datetime
 month_day_pat = r'\d+/\d+'
 month_day_range_pat = r'\d+/\d+-\d+/\d+'
 
+afterday_pattern = r'(?P<afterday>[明後]天)'
+weekday_pattern = r'(?P<next>下*)(?P<week>禮拜|星期|週)(?P<weekday>一|二|三|四|五)'
+month_day_pattern = r'(?P<monthday>\d+/\d+)'
+
+date_pattern_spec = [
+    ('AFTERDAY', r'[明後]天'),
+    ('WEEKDAY', r'(下*)(禮拜|星期|週)(一|二|三|四|五)'),
+    ('MONTHDAY', r'\d+/\d+'),
+    ('TIME', r'(早上|[上下]午)'),
+    ('FROMTO', r'-'),
+    ('AND', r'(,|和)'),
+    ('END', r'NOTHING'),
+]
+
 date_pat = ['明天','後天',r'\w*禮拜.',r'\w*星期.',r'\w*週.',month_day_range_pat,month_day_pat]
-time_pat = ['早上','上午','下午']
+time_pat = ['早上','[上下]午']
 takeoff_pat = r'請\w*假'
 
 test_items = [
-                '明天請假',
+                '我明天請假',
                 '明天上午請假',
                 '明天上午請假半天',
                 '明天早上請假',
@@ -33,8 +47,11 @@ test_items = [
                 '11/11-11/15請假',
                 '11/31請假',
                 '我今天想請假',
-                '今天誰請假'
-            ]
+                '今天誰請假',
+                '明天早上請假, 下禮拜一下午請假',
+                '下禮拜一和禮拜三請假',
+                '下禮拜一早上和禮拜三下午請假'
+]
 
 weekday_prefix = ['禮拜','星期','週']
 
@@ -48,8 +65,6 @@ weekday_map = {
                 '日': 6
             }
 
-def insertDateTime_to_list(alist, in_date, in_time):
-    alist.append({'date':in_date,'time': in_time})
 
 def match_pattern(pattern_list, input_string):
     for pattern in pattern_list:
@@ -94,48 +109,72 @@ def get_date(input_string):
     except:
         return None
 
-def parsing_date(input_string):
-    date_string = match_pattern(date_pat, input_string)
-    time_string = parsing_time(input_string)
+def parsing_monthday(input_string):
+    return get_date(input_string)
+
+def parsing_afterday(input_string):
+    setting_date = datetime.date.today()
+
+    if input_string == '明天':
+        setting_date = setting_date + datetime.timedelta(days=1)
+    elif input_string == '後天':
+        setting_date = setting_date + datetime.timedelta(days=2)
+    else:
+        setting_date = None
+
+    return setting_date
+
+
+def parsing_takeoff_req(input_string):
+    date_time_pattern = '\w*' + '|'.join('(?P<%s>%s)' % pair for pair in date_pattern_spec) + takeoff_pat
+    takeoff_date = None
+    takeoff_time = ''
+
+    range_start = None
+    range_exist = False
+
     date_list = []
-    if date_string:
-        setting_date = datetime.date.today()
 
-        match = re.search(month_day_pat, date_string)
-        if match:
-            match = re.search(month_day_range_pat, date_string)
-            if match:
-                split_string = match.group().split('-')
-                start_date = get_date(split_string[0])
-                end_date = get_date(split_string[1])
+    # 1st layer
+    for mo in re.finditer(date_time_pattern, input_string):
+        kind = mo.lastgroup
+        value = mo.group(kind)
+        # print ('%s => %s' % (kind, value))
 
-                if start_date and end_date:
-                    while start_date <= end_date:
-                        if start_date.weekday() <= 4:
-                            # date_list.append({start_date, time_string})
-                            insertDateTime_to_list(date_list, start_date, time_string)
-                        start_date = start_date + datetime.timedelta(days=1)
-                        pass
+        if kind == 'AFTERDAY':
+            takeoff_date = parsing_afterday(value)
+        elif kind == 'WEEKDAY':
+            takeoff_date = parsing_weekday(value)
+        elif kind == 'MONTHDAY':
+            takeoff_date = parsing_monthday(value)
+        elif kind == 'TIME':
+            takeoff_time = parsing_time(value)
+        elif kind == 'FROMTO':
+            # print ('%s => %s' % (kind, value))
+            if takeoff_date:
+                range_start = takeoff_date
+                range_exist = True
             else:
-                setting_date = get_date(date_string)
-                if setting_date and setting_date.weekday() <= 4:
-                    # date_list.append({setting_date, time_string})
-                    insertDateTime_to_list(date_list, setting_date, time_string)
-        else:
-            # descripted date
-            if date_string == '明天':
-                setting_date = setting_date + datetime.timedelta(days=1)
-            elif date_string == '後天':
-                setting_date = setting_date + datetime.timedelta(days=2)
-            else:
-                setting_date = parsing_weekday(date_string)
+                return []
+        elif kind == 'AND':
+            # print ('%s => %s' % (kind, value))
+            date_list.append({'date': takeoff_date, 'time': takeoff_time})
 
-            if setting_date and setting_date.weekday() <= 4:
-                # date_list.append({setting_date, time_string})
-                insertDateTime_to_list(date_list, setting_date, time_string)
+    if takeoff_time == '':
+        takeoff_time = 'wholeday'
+
+    if range_exist and range_start:
+        while range_start <= takeoff_date:
+            if range_start.weekday() <= 4:
+                date_list.append({'date': range_start, 'time': takeoff_time})
+            range_start = range_start + datetime.timedelta(days=1)
+            pass
+        range_exist = False
+        range_start = None
+    elif takeoff_date and takeoff_date.weekday() <= 4:
+        date_list.append({'date': takeoff_date, 'time': takeoff_time})
 
     return date_list
-
 
 def isTakeoffQuery(input_string):
     if match_pattern(["誰"+ takeoff_pat], input_string):
@@ -143,18 +182,19 @@ def isTakeoffQuery(input_string):
     return False
 
 def isTakeoffReq(input_string):
-    for datePat in date_pat:
-        if match_pattern([datePat + "\w*"+ takeoff_pat], input_string):
-            return True
+    # temp = '(?P<%s>%s' + '|'.join('%s' % aPat for aPat in date_pat)  + ')'+'(?P<time>\w*)'+takeoff_pat
+    temp = '\w*' + '|'.join('(?P<%s>%s)' % pair for pair in date_pattern_spec) +'\w*'+ takeoff_pat
+    match = re.match(temp, input_string)
+    if match:
+        return True
     return False
-    
 
 def parsing_takeoff_string(input_string):
     if isTakeoffQuery(input_string):
         return 'query'
 
     if isTakeoffReq(input_string):
-        return parsing_date(input_string)
+        return parsing_takeoff_req(input_string)
     return None
 
 if __name__ == "__main__":

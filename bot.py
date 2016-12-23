@@ -69,7 +69,7 @@ def report_to_weeklyreport_system(user, date_list, halfday):
 # Define actions when taking off
 def take_off_procedure(user_id, input_string):
 
-    date_list = parsing_takeoff.parsing_date(input_string)
+    date_list = parsing_takeoff.parsing_takeoff_req(input_string)
 
     if len(date_list) > 0 and len(date_list) <= 5:
         # weekly report
