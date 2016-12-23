@@ -61,7 +61,7 @@ def addEventstoGCalendar(user, date_list):
     http = credentials.authorize(httplib2.Http())
     service = discovery.build('calendar', 'v3', http=http)
 
-    summary = ("%s請假" % (user))
+    summary = ("%s" % (user))
 
     for x in date_list:
         start_time = ''
@@ -72,9 +72,13 @@ def addEventstoGCalendar(user, date_list):
         elif x['time'] == 'morning':
             start_time = ("%sT09:00:00+08:00"%str(x['date']))
             end_time = ("%sT12:00:00+08:00"%str(x['date']))
+            summary = summary + '早上'
         elif x['time'] == 'afternoon':
             start_time = ("%sT13:00:00+08:00"%str(x['date']))
             end_time = ("%sT17:30:00+08:00"%str(x['date']))
+            summary = summary + '下午'
+
+        summary = summary + '請假'
 
         # define event
         event = {

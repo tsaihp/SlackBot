@@ -6,6 +6,7 @@ import websocket
 import time
 import datetime
 import sys
+import csv
 
 import gcalendar
 import parsing_takeoff
@@ -88,7 +89,7 @@ def get_username_by_id(id):
     for item in user_list:
         if item['slack_id'] == id:
             return item['slack_name']
-    return "No user match"
+    return None
 
 def get_weeklyname_by_id(id):
     for item in user_list:
@@ -118,7 +119,10 @@ def on_message(ws, message):
     # elif r_type == "message":
     if r_type == "message":
         username=get_username_by_id(r_msg["user"])
-        # print(r_msg)
+
+        if username == None:
+            print(r_msg)
+            return
 
         # reply format
         reply={
@@ -208,14 +212,19 @@ if __name__ == "__main__":
     payload["token"] = json.loads(f.read())["token"]
     f.close()
 
-    # Read user's infomation
-    f=open("users.json", "r")
-    user_list = json.loads(f.read())["users"]
-    f.close()
+    user_list = []
+    with open('users.csv') as csvfile:
+        reader = csv.DictReader(csvfile)
+        for row in reader:
+            user_list.append(row)
 
     # connect to rtm
     r=requests.get(url,params=payload)
     rv = r.json()
+
+    for user in rv['users']:
+        if get_username_by_id(user['id']) == None:
+            print ('User %s(%s) is not in the database!'%(user['name'],user['id']))
 
     if rv['ok'] == True:
         print("Connect to slack RTM service: Success")
