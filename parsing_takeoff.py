@@ -182,9 +182,7 @@ def isTakeoffQuery(input_string):
     return False
 
 def isTakeoffReq(input_string):
-    # temp = '(?P<%s>%s' + '|'.join('%s' % aPat for aPat in date_pat)  + ')'+'(?P<time>\w*)'+takeoff_pat
-    temp = '\w*' + '|'.join('(?P<%s>%s)' % pair for pair in date_pattern_spec) +'\w*'+ takeoff_pat
-    match = re.match(temp, input_string)
+    match = re.match('\w*'+ takeoff_pat, input_string)
     if match:
         return True
     return False

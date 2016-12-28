@@ -30,8 +30,6 @@ google_calendar = None
 # Report to weekly report system
 def report_to_weeklyreport_system(user, date_list, halfday):
 
-    print("[Weekly System]user:%s, take off:%s"%(user,date_list))
-
     # time config
     localtime = time.localtime(time.time())
     current_date = time.strftime("%Y/%m/%d", localtime)
@@ -67,6 +65,10 @@ def report_to_weeklyreport_system(user, date_list, halfday):
                                                                    update_time=current_time
                                                                    )
         r = s.post('http://172.16.83.193/weekly/sql/db_insert_task.php', data=params)
+        if r.status_code is not 200:
+            print(r.json())
+        else:
+            print("[Weekly Report]user:%s, take off:%s"%(user,x['date'].isoformat()))
 
 
 # Define actions when taking off
@@ -81,7 +83,7 @@ def take_off_procedure(user_id, input_string):
 
         # calendar
         username = get_username_by_id(user_id)
-        google_calendar.addEventstoGCalendar(username, date_list)
+        google_calendar.addTakeOffEvents(username, date_list)
 
         return date_list[0]
 
