@@ -8,7 +8,7 @@ import datetime
 import sys
 import csv
 
-import gcalendar
+from gcalendar import gcalendar
 import parsing_takeoff
 
 # init
@@ -24,6 +24,8 @@ sample_content = (
     "-{content},-{w_t},-{o_t},-{update_day}<br>{update_time},"
     "-4,-{year}-{mon}-{day}|"
     )
+
+google_calendar = None
 
 # Report to weekly report system
 def report_to_weeklyreport_system(user, date_list, halfday):
@@ -79,7 +81,7 @@ def take_off_procedure(user_id, input_string):
 
         # calendar
         username = get_username_by_id(user_id)
-        gcalendar.addEventstoGCalendar(username, date_list)
+        google_calendar.addEventstoGCalendar(username, date_list)
 
         return date_list[0]
 
@@ -109,6 +111,7 @@ def on_reply(ws, reply, message):
 
 def on_message(ws, message):
     r_msg=json.loads(message)
+    # print(r_msg)
 
     current_time=time.asctime(time.localtime(time.time()))
     r_type=r_msg.get("type", "NO_TYPE")
@@ -118,6 +121,10 @@ def on_message(ws, message):
     #   print("%s %s %s"%(current_time, username, r_msg["presence"]))
     # elif r_type == "message":
     if r_type == "message":
+        if 'user' not in r_msg.keys():
+            print(r_msg)
+            return
+
         username=get_username_by_id(r_msg["user"])
 
         if username == None:
@@ -159,7 +166,7 @@ def on_message(ws, message):
             if firstDate:
                 reply_msg = "你將於%d/%d開始休假, 祝休假愉快!"%(firstDate['date'].month,firstDate['date'].day)
             else:
-                reply_msg = "拍謝啦, 我不了解你的明白, 你是不是時間給錯啦?"
+                reply_msg = "拍謝啦, 我不了解你的明白, 你是不是沒給時間或時間給錯啦?"
             on_reply(ws, reply, reply_msg)
         else:
             reply_msg = "我是個測試用的機器人, 不要把人家玩壞惹"
@@ -174,12 +181,14 @@ def on_error(ws, error):
 def on_close(ws):
     # wait 5 seconds
     time.sleep(5)
-    post_message_to_channel('test_channel', '拎北來睏惹!')
+    # post_message_to_channel('test_channel', '拎北來睏惹!')
+    post_message_to_user('ethan', '拎北來睏惹!')
     print("### closed ###")
 
 def on_open(ws):
     print("WS on_open!!")
-    post_message_to_channel('test_channel', '拎北起床惹!')
+    # post_message_to_channel('test_channel', '拎北起床惹!')
+    post_message_to_user('ethan', '拎北起床惹!')
 
 def connect_to(ws, ws_url):
     ws.close()
@@ -217,6 +226,8 @@ if __name__ == "__main__":
         reader = csv.DictReader(csvfile)
         for row in reader:
             user_list.append(row)
+
+    google_calendar = gcalendar()
 
     # connect to rtm
     r=requests.get(url,params=payload)
