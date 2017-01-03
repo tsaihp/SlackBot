@@ -1,10 +1,10 @@
-#coding:utf-8
+# coding:utf-8
 
-# 
+#
 # Parsing a string of taking off to datetime object
 # Athor: Ethan Tsai
 # Date: 2016/12/14
-# 
+#
 
 import re
 import datetime
@@ -26,44 +26,53 @@ date_pattern_spec = [
     ('END', r'NOTHING'),
 ]
 
-date_pat = ['明天','後天',r'\w*禮拜.',r'\w*星期.',r'\w*週.',month_day_range_pat,month_day_pat]
-time_pat = ['早上','[上下]午']
+date_pat = [
+    '明天',
+    '後天',
+    r'\w*禮拜.',
+    r'\w*星期.',
+    r'\w*週.',
+    month_day_range_pat,
+    month_day_pat
+]
+
+time_pat = ['早上', '[上下]午']
 takeoff_pat = r'請\w*假'
 
 test_items = [
-                '我明天請假',
-                '明天上午請假',
-                '明天上午請假半天',
-                '明天早上請假',
-                '明天下午請假',
-                '後天請假',
-                '下週一請假',
-                '下禮拜一請假',
-                '下禮拜一早上請假',
-                '星期五請假',
-                '下星期五請假',
-                '12/30請假',
-                '12/31早上請假',
-                '11/11-11/15請假',
-                '11/31請假',
-                '我今天想請假',
-                '今天誰請假',
-                '明天早上請假, 下禮拜一下午請假',
-                '下禮拜一和禮拜三請假',
-                '下禮拜一早上和禮拜三下午請假'
+    '我明天請假',
+    '明天上午請假',
+    '明天上午請假半天',
+    '明天早上請假',
+    '明天下午請假',
+    '後天請假',
+    '下週一請假',
+    '下禮拜一請假',
+    '下禮拜一早上請假',
+    '星期五請假',
+    '下星期五請假',
+    '12/30請假',
+    '12/31早上請假',
+    '11/11-11/15請假',
+    '11/31請假',
+    '我今天想請假',
+    '今天誰請假',
+    '明天早上請假, 下禮拜一下午請假',
+    '下禮拜一和禮拜三請假',
+    '下禮拜一早上和禮拜三下午請假'
 ]
 
-weekday_prefix = ['禮拜','星期','週']
+weekday_prefix = ['禮拜', '星期', '週']
 
 weekday_map = {
-                '一': 0,
-                '二': 1,
-                '三': 2,
-                '四': 3,
-                '五': 4,
-                '六': 5,
-                '日': 6
-            }
+    '一': 0,
+    '二': 1,
+    '三': 2,
+    '四': 3,
+    '五': 4,
+    '六': 5,
+    '日': 6
+}
 
 
 def match_pattern(pattern_list, input_string):
@@ -74,6 +83,7 @@ def match_pattern(pattern_list, input_string):
             return match.group()
     return None
 
+
 def parsing_time(input_time):
     time_string = match_pattern(time_pat, input_time)
     if time_string == '早上' or time_string == '上午':
@@ -82,6 +92,7 @@ def parsing_time(input_time):
         return 'afternoon'
     else:
         return 'wholeday'
+
 
 def parsing_weekday(input_weekday):
     for prefix in weekday_prefix:
@@ -99,18 +110,29 @@ def parsing_weekday(input_weekday):
             return aDate
     return None
 
+
 def get_date(input_string):
     input_string = input_string.split('/')
     try:
-        aDate = datetime.date(datetime.date.today().year, int(input_string[0]), int(input_string[1]))
+        aDate = datetime.date(
+            datetime.date.today().year,
+            int(input_string[0]),
+            int(input_string[1])
+        )
         if aDate < datetime.date.today():
-            aDate = datetime.date(datetime.date.today().year+1, int(input_string[0]), int(input_string[1]))
+            aDate = datetime.date(
+                datetime.date.today().year + 1,
+                int(input_string[0]),
+                int(input_string[1])
+            )
         return aDate
     except:
         return None
 
+
 def parsing_monthday(input_string):
     return get_date(input_string)
+
 
 def parsing_afterday(input_string):
     setting_date = datetime.date.today()
@@ -126,7 +148,9 @@ def parsing_afterday(input_string):
 
 
 def parsing_takeoff_req(input_string):
-    date_time_pattern = '\w*' + '|'.join('(?P<%s>%s)' % pair for pair in date_pattern_spec) + takeoff_pat
+    date_time_pattern = '\w*'
+    + '|'.join('(?P<%s>%s)' % pair for pair in date_pattern_spec)
+    + takeoff_pat
     takeoff_date = None
     takeoff_time = ''
 
@@ -176,16 +200,19 @@ def parsing_takeoff_req(input_string):
 
     return date_list
 
+
 def isTakeoffQuery(input_string):
-    if match_pattern(["誰"+ takeoff_pat], input_string):
+    if match_pattern(["誰" + takeoff_pat], input_string):
         return True
     return False
 
+
 def isTakeoffReq(input_string):
-    match = re.match('\w*'+ takeoff_pat, input_string)
+    match = re.match('\w*' + takeoff_pat, input_string)
     if match:
         return True
     return False
+
 
 def parsing_takeoff_string(input_string):
     if isTakeoffQuery(input_string):
@@ -194,6 +221,7 @@ def parsing_takeoff_string(input_string):
     if isTakeoffReq(input_string):
         return parsing_takeoff_req(input_string)
     return None
+
 
 if __name__ == "__main__":
     for item in test_items:
