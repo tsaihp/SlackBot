@@ -259,8 +259,8 @@ if __name__ == "__main__":
 
     for user in rv['users']:
         if get_username_by_id(user['id']) is None:
-            print ('User %s(%s) is not in the database!' % (user['name'],
-                                                            user['id']))
+            print('User %s(%s) is not in the database!' % (user['name'],
+                                                           user['id']))
 
     if rv['ok'] is True:
         print("Connect to slack RTM service: Success")
