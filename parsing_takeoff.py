@@ -148,9 +148,8 @@ def parsing_afterday(input_string):
 
 
 def parsing_takeoff_req(input_string):
-    date_time_pattern = '\w*'
-    + '|'.join('(?P<%s>%s)' % pair for pair in date_pattern_spec)
-    + takeoff_pat
+    date_time_pattern = '|'.join('(?P<%s>%s)' %
+                                 pair for pair in date_pattern_spec)
     takeoff_date = None
     takeoff_time = ''
 
@@ -163,7 +162,7 @@ def parsing_takeoff_req(input_string):
     for mo in re.finditer(date_time_pattern, input_string):
         kind = mo.lastgroup
         value = mo.group(kind)
-        # print ('%s => %s' % (kind, value))
+        # print('%s => %s' % (kind, value))
 
         if kind == 'AFTERDAY':
             takeoff_date = parsing_afterday(value)
@@ -208,7 +207,10 @@ def isTakeoffQuery(input_string):
 
 
 def isTakeoffReq(input_string):
-    match = re.match('\w*' + takeoff_pat, input_string)
+    pattern = '\w*'
+    pattern += '|'.join('(?P<%s>%s)' % pair for pair in date_pattern_spec)
+    pattern += takeoff_pat
+    match = re.match(pattern, input_string)
     if match:
         return True
     return False
