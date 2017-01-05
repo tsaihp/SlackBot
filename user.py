@@ -29,13 +29,13 @@ class slackuser(object):
         return self.name
 
     def isMaster(self):
-        if self.lvl is 'Master':
+        if self.lvl == 'master':
             return True
         else:
             return False
 
     def isManager(self):
-        if self.lvl is 'Manager':
+        if self.lvl == 'manager':
             return True
         else:
             return False
@@ -66,6 +66,8 @@ class slackuserdict(object):
     def get_user(self, slack_id):
         if slack_id in self.user_list:
             return self.user_list[slack_id]
+        else:
+            return None
 
 
 if __name__ == "__main__":

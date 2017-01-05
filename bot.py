@@ -6,17 +6,18 @@ import websocket
 import time
 import datetime
 import sys
-import csv
 
 from gcalendar import gcalendar
 import parsing_takeoff
+
+from user import slackuserdict
 
 # init
 url = "https://slack.com/api/rtm.start"
 users_profile_get = "https://slack.com/api/users.profile.get"
 
 payload = {"token": "1111-11111111111-111111111111111111111111"}
-user_list = []
+user_list = None
 
 sample_content = (
     "A,-{year},-{mon},-{day},"
@@ -85,37 +86,16 @@ def take_off_procedure(user_id, input_string):
 
     if len(date_list) > 0 and len(date_list) <= 5:
         # weekly report
-        username = get_weeklyname_by_id(user_id)
+        username = user_list.get_username_by_id(user_id)
         report_to_weeklyreport_system(username, date_list, False)
 
         # calendar
-        username = get_username_by_id(user_id)
+        username = user_list.get_weeklyname_by_id(user_id)
         google_calendar.addTakeOffEvents(username, date_list)
 
         return date_list[0]
 
     return None
-
-
-def get_username_by_id(id):
-    for item in user_list:
-        if item['slack_id'] == id:
-            return item['slack_name']
-    return None
-
-
-def get_weeklyname_by_id(id):
-    for item in user_list:
-        if item['slack_id'] == id:
-            return item['weekly_name']
-    return "No user match"
-
-
-def get_googlename_by_id(id):
-    for item in user_list:
-        if item['slack_id'] == id:
-            return item['google_name']
-    return "No user match"
 
 
 def on_reply(ws, reply, message):
@@ -136,14 +116,15 @@ def on_message(ws, message):
     # elif r_type == "message":
     if r_type == "message":
         if 'user' not in r_msg.keys():
-            print(r_msg)
+            # print(r_msg)
             return
 
-        username = get_username_by_id(r_msg["user"])
-
-        if username is None:
-            print(r_msg)
+        user = user_list.get_user(r_msg["user"])
+        if user is None:
+            print(r_msg["user"], ':', r_msg["text"])
             return
+
+        username = user.name
 
         # reply format
         reply = {
@@ -153,10 +134,6 @@ def on_message(ws, message):
             "channel": r_msg["channel"]
         }
         input_msg = r_msg["text"].lower()
-
-        if username == "" or username == "No user match":
-            # no user name
-            return
 
         if r_msg["user"] == "U26SFGPP1":
             print("Bot: %s" % (r_msg["text"]))
@@ -173,7 +150,7 @@ def on_message(ws, message):
             reply["text"] = username + ", 您好, 吃飽未?"
             ws.send(json.dumps(reply))
         elif input_msg == "bot close":
-            if username == "ethan":
+            if user.isMaster():
                 on_reply(ws, reply, "Bye~!")
                 ws.close()
         elif parsing_takeoff.isTakeoffReq(input_msg):
@@ -211,10 +188,6 @@ def on_open(ws):
     post_message_to_user('ethan', '拎北起床惹!')
 
 
-def connect_to(ws, ws_url):
-    ws.close()
-
-
 def post_message(post_to, message):
     msg_payload = {
         'token': payload["token"],
@@ -245,22 +218,17 @@ if __name__ == "__main__":
     payload["token"] = json.loads(f.read())["token"]
     f.close()
 
-    user_list = []
-    with open('users.csv') as csvfile:
-        reader = csv.DictReader(csvfile)
-        for row in reader:
-            user_list.append(row)
-
+    user_list = slackuserdict('users.csv')
     google_calendar = gcalendar()
 
     # connect to rtm
     r = requests.get(url, params=payload)
     rv = r.json()
 
-    for user in rv['users']:
-        if get_username_by_id(user['id']) is None:
-            print('User %s(%s) is not in the database!' % (user['name'],
-                                                           user['id']))
+    # for user in rv['users']:
+    #     if get_username_by_id(user['id']) is None:
+    #         print('User %s(%s) is not in the database!' % (user['name'],
+    #                                                        user['id']))
 
     if rv['ok'] is True:
         print("Connect to slack RTM service: Success")
