@@ -86,11 +86,11 @@ def take_off_procedure(user_id, input_string):
 
     if len(date_list) > 0 and len(date_list) <= 5:
         # weekly report
-        username = user_list.get_username_by_id(user_id)
+        username = user_list.get_weeklyname_by_id(user_id)
         report_to_weeklyreport_system(username, date_list, False)
 
         # calendar
-        username = user_list.get_weeklyname_by_id(user_id)
+        username = user_list.get_username_by_id(user_id)
         google_calendar.addTakeOffEvents(username, date_list)
 
         return date_list[0]
