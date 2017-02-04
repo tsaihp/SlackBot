@@ -61,11 +61,11 @@ class gcalendar:
         self.service = discovery.build('calendar', 'v3', http=http)
 
     def addTakeOffEvents(self, user, date_list):
-        summary = ("%s" % (user))
 
         for x in date_list:
             start_datetime = datetime.combine(x['date'], time(9, 0))
             end_datetime = datetime.combine(x['date'], time(17, 30))
+            summary = user
 
             if x['time'] == 'morning':
                 end_datetime = datetime.combine(x['date'], time(12, 0))
